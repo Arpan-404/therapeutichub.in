@@ -68,11 +68,11 @@
         const { useState, useEffect, useRef } = React;
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        // CRITICAL UPDATE: Imported signInWithRedirect and getRedirectResult for Mobile Safety
+        import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getDatabase, ref, get, onValue } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
-        // Mobile Safe ID Generator
         const generateId = () => {
             if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
             return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
@@ -293,7 +293,6 @@
                           if (Array.isArray(data.exercises)) exArray = data.exercises.filter(Boolean);
                           else exArray = Object.keys(data.exercises).map(key => ({ ...data.exercises[key], id: data.exercises[key].id || key }));
                       }
-                      // Handle objects to arrays securely
                       const docs = Array.isArray(data.doctors) ? data.doctors.filter(Boolean) : (data.doctors ? Object.keys(data.doctors).map(k => data.doctors[k]) : []);
                       const branches = Array.isArray(data.branches) ? data.branches.filter(Boolean) : (data.branches ? Object.keys(data.branches).map(k => data.branches[k]) : []);
                       
@@ -306,7 +305,13 @@
           // Auth & Persistence
           useEffect(() => {
               const initAuth = async () => {
-                  try { await setPersistence(auth, browserLocalPersistence); } catch (err) {}
+                  try { 
+                      await setPersistence(auth, browserLocalPersistence); 
+                      // Catch Mobile Redirect Returns
+                      await getRedirectResult(auth);
+                  } catch (err) {
+                      console.error("Auth initialization error:", err);
+                  }
                   
                   onAuthStateChanged(auth, async (currentUser) => { 
                       if (currentUser && !currentUser.isAnonymous) {
@@ -322,8 +327,6 @@
                               }
                           } catch(e) { 
                               console.error("Firestore Error:", e);
-                              // DO NOT SIGNOUT HERE! This causes the loop.
-                              // Just show the explicit database error on screen.
                               setDbErrorMsg(e.message || "Could not connect to Firestore. Please check your Firebase Database Rules.");
                           }
                       } else {
@@ -368,7 +371,8 @@
           const handleDoctorGoogleLogin = async () => { 
               try { 
                   await setPersistence(auth, browserLocalPersistence);
-                  await signInWithPopup(auth, googleProvider); 
+                  // CRITICAL FIX: Using Redirect instead of Popup for mobile safety
+                  await signInWithRedirect(auth, googleProvider); 
               } catch (error) { alert("Login Failed. Please try again."); } 
           };
 
@@ -416,7 +420,6 @@
 
           if (isConnecting) return null; 
 
-          // EXPLICIT DATABASE ERROR UI (Prevents the infinite loop)
           if (dbErrorMsg) {
               return (
                   <div className="min-h-screen bg-appbg flex flex-col items-center justify-center p-4">
@@ -1234,4 +1237,3 @@
     </script>
 </body>
 </html>
-
