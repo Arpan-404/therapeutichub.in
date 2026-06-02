@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Rehabilitation Exercises - Physio Hub</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        /* PREMIUM MEDICAL THEME */
+        :root {
+            --app-bg: #f8fafc;        
+            --surface: #ffffff;       
+            --primary: #2563eb;       
+            --primary-dark: #1e40af;
+            --primary-light: #dbeafe;  
+            --text-dark: #0f172a;     
+            --text-muted: #475569;    
+            --border: #e2e8f0;
+            --shadow-soft: 0 4px 15px rgba(15, 23, 42, 0.04);
+            --shadow-hover: 0 10px 25px rgba(15, 23, 42, 0.08); 
+            --radius-sm: 8px;         
+            --radius-md: 12px;
+            --radius-lg: 16px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif; background: var(--app-bg); color: var(--text-dark); line-height: 1.5; padding-bottom: 2rem; overflow-x: hidden; }
+        a { text-decoration: none; color: inherit; }
+
+        /* HEADER */
+        .header { position: fixed; top: 0; left: 0; right: 0; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); padding: 0.6rem 1rem; display: flex; justify-content: space-between; align-items: center; z-index: 1000; height: 60px; gap: 8px; border-bottom: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+        .logo { display: flex; align-items: center; }
+        .logo-img { width: 36px; height: 36px; border-radius: var(--radius-sm); object-fit: cover; }
+        
+        .search-container { flex-grow: 1; display: flex; justify-content: center; position: relative; max-width: 250px; margin: 0 auto; }
+        .search-input { width: 100%; padding: 8px 16px; border-radius: 100px; border: 1px solid var(--border); background: #f1f5f9; font-size: 0.9rem; transition: all 0.2s ease; color: var(--text-dark); }
+        .search-input:focus { background: var(--surface); border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); outline: none; }
+        
+        .header-actions { display: flex; align-items: center; gap: 8px; }
+        .hamburger { padding: 4px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 36px; height: 36px; }
+        .hamburger span { display: block; width: 22px; height: 2px; background: var(--text-dark); margin: 3px 0; border-radius: 2px; transition: 0.2s; }
+
+        /* Search Results & Menu */
+        .search-results { position: fixed; top: 65px; left: 1rem; right: 1rem; max-height: 60vh; overflow-y: auto; background: var(--surface); border-radius: var(--radius-md); box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 1002; display: none; padding: 0.5rem; border: 1px solid var(--border); }
+        .search-results.active { display: block; }
+        .search-result-item { padding: 10px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 10px; font-size: 0.9rem; border-radius: var(--radius-sm); }
+        .search-result-item:hover { background: #f8fafc; }
+        .search-category-title { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin: 10px 5px 5px; font-weight: 700; }
+
+        /* SMOOTH SLIDING MENU */
+        .mobile-menu { position: fixed; top: 0; right: 0; width: 280px; height: 100vh; background: var(--surface); z-index: 1001; transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); padding: 1rem 0 2rem; box-shadow: -5px 0 25px rgba(15, 23, 42, 0.1); overflow-y: auto; border-left: 1px solid var(--border); }
+        .mobile-menu.active { transform: translateX(0); } 
+        .mobile-menu ul { list-style: none; }
+        .mobile-menu ul li a.main-nav-link { display: flex; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid #f8fafc; font-weight: 600; font-size: 1rem; color: var(--text-dark); transition: color 0.2s; }
+        .mobile-menu ul li a.main-nav-link:hover { color: var(--primary); }
+        .close-menu { background: #f1f5f9; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; color: var(--text-muted); transition: 0.2s; display: flex; align-items: center; justify-content: center; }
+        .close-menu:hover { background: #e2e8f0; color: var(--text-dark); }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); z-index: 999; visibility: hidden; opacity: 0; transition: opacity 0.3s, visibility 0.3s;}
+        .overlay.active { visibility: visible; opacity: 1; }
+
+        /* MAIN CONTENT */
+        .main { margin-top: 80px; padding: 0 1rem; max-width: 1000px; margin-left: auto; margin-right: auto; }
+        
+        .page-header { text-align: center; margin-bottom: 2rem; }
+        .page-title { color: var(--text-dark); font-size: 2rem; font-weight: 800; letter-spacing: -0.5px; display: flex; align-items: center; justify-content: center; gap: 10px;}
+        .page-subtitle { color: var(--text-muted); font-size: 1rem; margin-top: 8px; max-width: 600px; margin-left: auto; margin-right: auto;}
+        
+        /* IN-PAGE LOCAL SEARCH */
+        .local-search-container { position: relative; margin-bottom: 2.5rem; max-width: 600px; margin-left: auto; margin-right: auto; }
+        .local-search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 1.2rem; pointer-events: none; }
+        .local-search-input { width: 100%; padding: 14px 20px 14px 44px; border-radius: 100px; border: 1px solid var(--border); background: var(--surface); font-size: 1rem; box-shadow: var(--shadow-soft); transition: all 0.2s ease; color: var(--text-dark); }
+        .local-search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1); outline: none; }
+
+        /* CSS MASONRY GRID */
+        .masonry-grid {
+            column-count: 2;
+            column-gap: 1rem;
+        }
+        
+        @media (min-width: 768px) { .masonry-grid { column-count: 3; column-gap: 1.5rem; } }
+        @media (min-width: 1024px) { .masonry-grid { column-count: 4; column-gap: 1.5rem; } }
+        
+        .masonry-item {
+            break-inside: avoid;
+            margin-bottom: 1rem;
+            display: inline-block; /* Important for preserving card integrity in columns */
+            width: 100%;
+        }
+        
+        @media (min-width: 768px) { .masonry-item { margin-bottom: 1.5rem; } }
+
+        /* EXERCISE CARD */
+        .card-ex { 
+            background: var(--surface); 
+            border-radius: var(--radius-md); 
+            display: flex; 
+            flex-direction: column; 
+            box-shadow: var(--shadow-soft); 
+            border: 1px solid var(--border); 
+            overflow: hidden; 
+            transition: transform 0.2s, box-shadow 0.2s; 
+        }
+        .card-ex:hover { transform: translateY(-3px); box-shadow: var(--shadow-hover); border-color: #cbd5e1; }
+        .card-ex:active { transform: scale(0.99); }
+        
+        .card-ex-img-wrapper {
+            width: 100%;
+            background: #ffffff; /* Ensures transparent PNGs look good */
+            border-bottom: 1px solid #f1f5f9;
+            position: relative;
+        }
+
+        .card-ex-img { 
+            width: 100%; 
+            height: auto; 
+            object-fit: contain; 
+            padding: 10px; 
+            mix-blend-mode: multiply; 
+            display: block;
+        }
+
+        .card-ex-placeholder {
+            width: 100%;
+            aspect-ratio: 1/1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: #cbd5e1;
+            background: #f8fafc;
+        }
+
+        .card-ex-info { 
+            padding: 14px 12px; 
+            flex-grow: 1; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            text-align: center;
+        }
+        
+        .card-ex-title { 
+            font-size: 0.95rem; 
+            font-weight: 700; 
+            color: var(--text-dark); 
+            margin-bottom: 0; 
+            line-height: 1.3; 
+        }
+
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="/" class="logo"><img src="" alt="PT" class="logo-img" id="clinicLogo"></a>
+        <div class="search-container"><input type="text" id="globalSearch" class="search-input" placeholder="Search anywhere..." oninput="window.handleSearch()"></div>
+        <div class="header-actions"><div class="hamburger" onclick="window.toggleMenu()"><span></span><span></span><span></span></div></div>
+    </header>
+
+    <div id="searchResults" class="search-results"></div>
+
+    <div class="mobile-menu" id="mobileMenu">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 1.5rem 1rem; border-bottom: 1px solid var(--border);">
+            <h2 style="font-size: 1.2rem; font-weight: 800; color: var(--primary-dark); margin: 0;">Menu</h2>
+            <button class="close-menu" onclick="window.toggleMenu()"><i class="ph-bold ph-x"></i></button>
+        </div>
+        <ul>
+            <li><a href="/" class="main-nav-link"><i class="ph-bold ph-house" style="margin-right: 12px; font-size: 1.3rem; color: var(--text-muted);"></i> Home</a></li>
+            <li><a href="/branches" class="main-nav-link"><i class="ph-bold ph-map-pin" style="margin-right: 12px; font-size: 1.3rem; color: var(--text-muted);"></i> Clinic Locations</a></li>
+            <li><a href="/services" class="main-nav-link"><i class="ph-bold ph-first-aid" style="margin-right: 12px; font-size: 1.3rem; color: var(--text-muted);"></i> Clinical Services</a></li>
+            <li><a href="/doctors" class="main-nav-link"><i class="ph-bold ph-stethoscope" style="margin-right: 12px; font-size: 1.3rem; color: var(--text-muted);"></i> Clinical Team</a></li>
+            <li><a href="/products" class="main-nav-link"><i class="ph-bold ph-shopping-bag" style="margin-right: 12px; font-size: 1.3rem; color: var(--text-muted);"></i> Wellness Products</a></li>
+            <li><a href="/articles" class="main-nav-link"><i class="ph-bold ph-article" style="margin-right: 12px; font-size: 1.3rem; color: var(--text-muted);"></i> Health Articles</a></li>
+            <li><a href="/exercises" class="main-nav-link" style="color: var(--primary); background: var(--primary-light);"><i class="ph-bold ph-person-simple-walk" style="margin-right: 12px; font-size: 1.3rem; color: var(--primary);"></i> Rehabilitation Exercises</a></li>
+            <li><a href="/prescription" class="main-nav-link"><i class="ph-bold ph-folder-open" style="margin-right: 12px; font-size: 1.3rem; color: var(--text-muted);"></i> Patient Records</a></li>
+            
+            <li style="padding: 2.5rem 1.5rem 0.5rem; border-bottom: none; display: flex; flex-direction: column; gap: 8px;">
+                <div style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Staff Access</div>
+                <a href="/doctor-dashboard" style="color: #64748b; font-size: 0.85rem; font-weight: 500; display: inline-flex; align-items: center; transition: color 0.2s; text-decoration: none;">
+                    <i class="ph-fill ph-activity" style="margin-right: 6px; font-size: 1rem;"></i> Staff Portal
+                </a>
+            </li>
+        </ul>
+    </div>
+    <div class="overlay" id="overlay" onclick="window.toggleMenu()"></div>
+
+    <main class="main">
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="ph-fill ph-person-simple-walk text-azure"></i> 
+                <span id="pageTitleText">Rehabilitation Exercises</span>
+            </h1>
+            <p class="page-subtitle" id="pageSubtitleText"></p>
+        </div>
+
+        <div class="local-search-container">
+            <i class="ph-bold ph-magnifying-glass local-search-icon"></i>
+            <input type="text" id="exerciseFilter" class="local-search-input" placeholder="Filter exercises by name or body part..." oninput="window.filterExercises()">
+        </div>
+
+        <div class="masonry-grid" id="exerciseFeed">
+            <div style="text-align:center; grid-column: 1/-1; padding: 4rem 1rem; color:var(--text-muted); font-size: 0.9rem; width: 100%;">
+                <i class="ph-bold ph-spinner-gap" style="font-size: 2rem; display: block; margin: 0 auto 10px; animation: spin 1s linear infinite;"></i>
+                Loading exercise library...
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
+        import { getDatabase, ref, onValue } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js';
+
+        const app = initializeApp({ apiKey: "AIzaSyAuk3feAZjoHF2VwdWtA0F4lhQKarU0w-4", databaseURL: "https://clinic-bdf92-default-rtdb.firebaseio.com", projectId: "clinic-bdf92" });
+        const db = getDatabase(app);
+        
+        window.siteData = {};
+        window.allExercises = [];
+        
+        window.slugify = (text) => text.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+        window.toggleMenu = () => { document.getElementById('mobileMenu').classList.toggle('active'); document.getElementById('overlay').classList.toggle('active'); };
+        document.addEventListener('click', (e) => { const r = document.getElementById('searchResults'), i = document.getElementById('globalSearch'); if (e.target !== r && e.target !== i && !r.contains(e.target)) r.classList.remove('active'); });
+
+        // Spin animation for loader
+        const style = document.createElement('style');
+        style.innerHTML = `@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`;
+        document.head.appendChild(style);
+
+        // 1. Fetch Site Data (for Global Search, Logos, and Custom Titles)
+        onValue(ref(db, 'site'), (snapshot) => {
+            window.siteData = snapshot.val() || {};
+            
+            const heroData = window.siteData.hero || {};
+            if(heroData.logoUrl) document.getElementById('clinicLogo').src = heroData.logoUrl;
+            
+            // Customizable Titles
+            document.getElementById('pageTitleText').innerText = heroData.exercisesTitle || 'Rehabilitation Exercises';
+            
+            const subtitleEl = document.getElementById('pageSubtitleText');
+            if (heroData.exercisesSubtitle !== undefined) {
+                if (heroData.exercisesSubtitle.trim() === '') {
+                    subtitleEl.style.display = 'none';
+                } else {
+                    subtitleEl.innerText = heroData.exercisesSubtitle;
+                    subtitleEl.style.display = 'block';
+                }
+            } else {
+                subtitleEl.innerText = 'Browse our comprehensive library of guided exercises for optimal recovery and strength.';
+            }
+        });
+
+        // 2. Fetch Exercises directly
+        fetch('https://clinic-bdf92-default-rtdb.firebaseio.com/site/exercises.json')
+            .then(res => res.json())
+            .then(data => {
+                if(data) {
+                    let exList = [];
+                    if (Array.isArray(data)) { exList = data.filter(Boolean); } 
+                    else { exList = Object.keys(data).map(key => ({id: key, ...data[key]})); }
+                    
+                    window.allExercises = exList.reverse();
+                    window.renderExercises(window.allExercises);
+                } else {
+                    document.getElementById('exerciseFeed').innerHTML = '<div style="text-align:center; width:100%; padding: 3rem 1rem; color:var(--text-muted);">No exercises found.</div>';
+                }
+            }).catch(e => {
+                document.getElementById('exerciseFeed').innerHTML = '<div style="text-align:center; width:100%; padding: 3rem 1rem; color:var(--text-muted);">Database connection error.</div>';
+            });
+
+        // 3. Render Exercise Cards
+        window.renderExercises = function(exercisesToRender) {
+            const feed = document.getElementById('exerciseFeed');
+            
+            if(exercisesToRender.length === 0) {
+                feed.innerHTML = `
+                    <div style="text-align: center; width: 100%; padding: 3rem 1rem; background: var(--surface); border-radius: var(--radius-md); border: 1px solid var(--border);">
+                        <p style="color: var(--text-muted); font-size: 0.9rem;">No exercises found matching your search.</p>
+                    </div>`;
+                feed.style.columnCount = '1'; // Prevent masonry split for empty state
+                return;
+            }
+
+            // Restore masonry column count
+            feed.style.columnCount = '';
+
+            feed.innerHTML = exercisesToRender.map(ex => {
+                const imgHtml = ex.imageUrl 
+                    ? `<img src="${ex.imageUrl}" class="card-ex-img" loading="lazy" alt="${ex.name}">` 
+                    : `<div class="card-ex-placeholder"><i class="ph-bold ph-person-simple-walk"></i></div>`;
+
+                return `
+                    <a href="/exercise/${window.slugify(ex.name)}" class="masonry-item card-ex">
+                        <div class="card-ex-img-wrapper">
+                            ${imgHtml}
+                        </div>
+                        <div class="card-ex-info">
+                            <h4 class="card-ex-title">${ex.name}</h4>
+                        </div>
+                    </a>
+                `;
+            }).join('');
+        };
+
+        // 4. Local Filtering
+        window.filterExercises = function() {
+            const query = document.getElementById('exerciseFilter').value.toLowerCase().trim();
+            if (!query) {
+                window.renderExercises(window.allExercises);
+                return;
+            }
+            const filtered = window.allExercises.filter(ex => 
+                (ex.name && ex.name.toLowerCase().includes(query)) || 
+                (ex.tags && Array.isArray(ex.tags) && ex.tags.some(t => t.toLowerCase().includes(query))) ||
+                (ex.description && ex.description.toLowerCase().includes(query))
+            );
+            window.renderExercises(filtered);
+        };
+
+        // 5. Global Search Bar Integration
+        window.handleSearch = function() {
+            const query = document.getElementById('globalSearch').value.toLowerCase();
+            const res = document.getElementById('searchResults');
+            if (!query) { res.classList.remove('active'); return; }
+
+            let html = '';
+            const filterMap = (arr, fields, linkPrefix, imgFn, titleFn, subFn) => {
+                const filtered = (arr || []).filter(item => fields.some(f => item[f]?.toLowerCase().includes(query)));
+                if(filtered.length === 0) return '';
+                return filtered.map(item => `<a href="${linkPrefix}${window.slugify(item.title || item.name)}" class="search-result-item">${imgFn(item)} <div><div style="font-weight:800;font-size:0.95rem;">${titleFn(item)}</div><div style="font-size:0.8rem;color:var(--text-muted);">${subFn(item)}</div></div></a>`).join('');
+            };
+
+            const bHtml = filterMap(window.siteData.branches, ['name', 'address'], '/branch/', b => `<div style="font-size:1.5rem; color:var(--primary);"><i class="ph-fill ph-map-pin"></i></div>`, b=>b.name, b=>b.address);
+            if(bHtml) html += `<div class="search-category-title">Locations</div>${bHtml}`;
+
+            const sHtml = filterMap(window.siteData.services, ['title', 'description'], '/service/', s => `<div style="font-size:1.2rem; width:32px; text-align:center; color:var(--text-muted);"><i class="ph-bold ph-first-aid"></i></div>`, s=>s.title, s=>'Service');
+            if(sHtml) html += `<div class="search-category-title">Services</div>${sHtml}`;
+
+            const dHtml = filterMap(window.siteData.doctors, ['name', 'qualification'], '/doctor/', d => d.photoUrl?`<img src="${d.photoUrl}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">`:`<div style="width:32px; text-align:center; font-size:1.5rem; color:var(--text-muted);"><i class="ph-bold ph-user"></i></div>`, d=>d.name, d=>d.qualification);
+            if(dHtml) html += `<div class="search-category-title">Doctors</div>${dHtml}`;
+
+            const pHtml = filterMap(window.siteData.products, ['name'], '/product/', p => p.profilePhoto?`<img src="${p.profilePhoto}" style="width:32px;height:32px;border-radius:6px;object-fit:cover;">`:`<div style="width:32px; text-align:center; font-size:1.5rem; color:var(--text-muted);"><i class="ph-bold ph-package"></i></div>`, p=>p.name, p=>`<span style="color:var(--primary);font-weight:700">${p.price}</span>`);
+            if(pHtml) html += `<div class="search-category-title">Products</div>${pHtml}`;
+
+            const aHtml = (window.siteData.articles || []).filter(a => a.title.toLowerCase().includes(query) || a.content.toLowerCase().includes(query))
+                .map(a => `<a href="/${a.slug}" class="search-result-item"><div style="width:32px; text-align:center; font-size:1.5rem; color:var(--text-muted);"><i class="ph-bold ph-article"></i></div> <div><div style="font-weight:800;font-size:0.95rem;">${a.title}</div><div style="font-size:0.8rem;color:var(--text-muted);">Article</div></div></a>`).join('');
+            if(aHtml) html += `<div class="search-category-title">Articles</div>${aHtml}`;
+
+            res.innerHTML = html || '<p style="text-align:center; color:var(--text-muted); padding:1rem; font-size:0.9rem;">No results found</p>';
+            res.classList.add('active');
+        }
+    </script>
+</body>
+</html>
