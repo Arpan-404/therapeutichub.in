@@ -72,7 +72,11 @@
         import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getDatabase, ref, get, onValue } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
-        const generateId = () => crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+        // Mobile Safe ID Generator
+        const generateId = () => {
+            if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+            return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        };
         const slugify = (text) => text ? text.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') : '';
 
         // 1. PRIVATE DATABASE (Patient Records)
@@ -271,6 +275,7 @@
           const [staffProfile, setStaffProfile] = useState(null); 
           const [isConnecting, setIsConnecting] = useState(true);
           const [needsSetup, setNeedsSetup] = useState(false);
+          const [dbErrorMsg, setDbErrorMsg] = useState("");
           
           const [draftPatient, setDraftPatient] = useState(null); 
           const [viewMode, setViewMode] = useState('login'); 
@@ -288,6 +293,7 @@
                           if (Array.isArray(data.exercises)) exArray = data.exercises.filter(Boolean);
                           else exArray = Object.keys(data.exercises).map(key => ({ ...data.exercises[key], id: data.exercises[key].id || key }));
                       }
+                      // Handle objects to arrays securely
                       const docs = Array.isArray(data.doctors) ? data.doctors.filter(Boolean) : (data.doctors ? Object.keys(data.doctors).map(k => data.doctors[k]) : []);
                       const branches = Array.isArray(data.branches) ? data.branches.filter(Boolean) : (data.branches ? Object.keys(data.branches).map(k => data.branches[k]) : []);
                       
@@ -316,10 +322,9 @@
                               }
                           } catch(e) { 
                               console.error("Firestore Error:", e);
-                              alert("Database Error: Could not verify your staff account.\n\nPlease ensure 'Firestore Database' is enabled in your Firebase Console and Security Rules allow reads/writes.");
-                              await signOut(auth);
-                              setUser(null);
-                              setViewMode('login');
+                              // DO NOT SIGNOUT HERE! This causes the loop.
+                              // Just show the explicit database error on screen.
+                              setDbErrorMsg(e.message || "Could not connect to Firestore. Please check your Firebase Database Rules.");
                           }
                       } else {
                           setUser(null);
@@ -352,7 +357,7 @@
                   setAllPatients(data);
                 }, (err) => {
                     console.error("Listener error:", err);
-                    alert("Lost connection to Patient Records Database. Check your Firestore rules.");
+                    setDbErrorMsg("Lost connection to Patient Records Database. Check your Firestore rules.");
                 });
                 return () => unsubscribe();
             } catch (err) {
@@ -369,6 +374,7 @@
 
           const handleLogout = async () => {
               try { await signOut(auth); } catch (error) {}
+              setDbErrorMsg("");
               window.location.reload();
           };
 
@@ -410,6 +416,22 @@
 
           if (isConnecting) return null; 
 
+          // EXPLICIT DATABASE ERROR UI (Prevents the infinite loop)
+          if (dbErrorMsg) {
+              return (
+                  <div className="min-h-screen bg-appbg flex flex-col items-center justify-center p-4">
+                      <div className="max-w-md w-full bg-white rounded-2xl shadow-soft border border-red-200 p-8 text-center">
+                          <i className="ph-fill ph-warning-circle text-5xl text-red-500 mb-3"></i>
+                          <h1 className="text-2xl font-black text-navy mb-2">Database Error</h1>
+                          <p className="text-sm text-slate-600 mb-6 bg-red-50 p-3 rounded-lg border border-red-100">{dbErrorMsg}</p>
+                          <button onClick={handleLogout} className="w-full bg-slate-100 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-200 transition shadow-sm">
+                              Sign Out & Retry
+                          </button>
+                      </div>
+                  </div>
+              );
+          }
+
           if (needsSetup) {
               return <StaffSetupScreen user={user} siteData={siteData} onComplete={(profile) => { setStaffProfile(profile); setNeedsSetup(false); setViewMode('home'); }} />;
           }
@@ -430,7 +452,7 @@
               );
           }
           
-          if (!staffProfile) return null; // Safety check
+          if (!staffProfile) return null;
 
           // RBAC Filtering Logic
           let viewablePatients = allPatients;
@@ -1212,3 +1234,4 @@
     </script>
 </body>
 </html>
+
