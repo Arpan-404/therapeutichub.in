@@ -24,7 +24,6 @@
     </script>
 
     <style>
-        /* General Styles */
         body { background-color: #f4f7fb; overflow-x: hidden; }
         .editable-cell { min-width: 30px; max-width: 100%; outline: none; word-break: break-word; white-space: pre-wrap; transition: background-color 0.2s; }
         .editable-cell:not([contenteditable="false"]):empty:before { content: attr(data-placeholder); color: #cbd5e1; pointer-events: none; display: block; }
@@ -40,7 +39,6 @@
         .toggle-btn.active { color: #1d4ed8; }
         .toggle-slider { position: absolute; top: 4px; bottom: 4px; width: calc(50% - 4px); background: white; border-radius: 100px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1); z-index: 0; }
 
-        /* Print Layout Rules */
         @page { size: A4; margin: 10mm; }
         @media print {
             body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background-color: white !important; padding: 0 !important; margin: 0 !important; }
@@ -77,9 +75,7 @@
         const generateId = () => crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
         const slugify = (text) => text ? text.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') : '';
 
-        // ==========================================
-        // DUAL DATABASE CONFIGURATION
-        // ==========================================
+        // 1. PRIVATE DATABASE (Patient Records)
         const recordsConfig = {
             apiKey: "AIzaSyCPhZY9CrsXJHIr5nBPaGPNVHsc70yfVus",
             authDomain: "patient-records-arpan.firebaseapp.com",
@@ -94,6 +90,7 @@
         const googleProvider = new GoogleAuthProvider();
         const appId = 'physiocare-tracker';
         
+        // 2. PUBLIC DATABASE (Site Info)
         const siteConfig = {
             apiKey: "AIzaSyAuk3feAZjoHF2VwdWtA0F4lhQKarU0w-4", 
             authDomain: "clinic-bdf92.firebaseapp.com",
@@ -103,7 +100,6 @@
         const appSite = initializeApp(siteConfig, "AppSite");
         const rtdbSite = getDatabase(appSite); 
 
-        // Joint Data Dictionary (For Tracking Tabs)
         const JOINTS_DATA = {
           'Cervical': [ { name: 'Flexion', type: 'single', normal: '45°' }, { name: 'Extension', type: 'single', normal: '45°' }, { name: 'Lat. Flexion', type: 'bilateral', normal: '45°' }, { name: 'Rotation', type: 'bilateral', normal: '60°' } ],
           'Spine': [ { name: 'Flexion', type: 'single', normal: '80°' }, { name: 'Extension', type: 'single', normal: '25°' }, { name: 'Lat. Flexion', type: 'bilateral', normal: '35°' }, { name: 'Rotation', type: 'bilateral', normal: '45°' } ],
@@ -212,7 +208,8 @@
                     await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'profile', 'staffSettings'), profileData);
                     onComplete(profileData);
                 } catch(e) {
-                    alert("Error saving profile.");
+                    console.error(e);
+                    alert("Error saving profile. Please ensure Firestore is enabled in your Firebase Console and Rules allow writing.");
                 }
                 setIsSaving(false);
             };
@@ -291,7 +288,6 @@
                           if (Array.isArray(data.exercises)) exArray = data.exercises.filter(Boolean);
                           else exArray = Object.keys(data.exercises).map(key => ({ ...data.exercises[key], id: data.exercises[key].id || key }));
                       }
-                      // Handle objects to arrays securely
                       const docs = Array.isArray(data.doctors) ? data.doctors.filter(Boolean) : (data.doctors ? Object.keys(data.doctors).map(k => data.doctors[k]) : []);
                       const branches = Array.isArray(data.branches) ? data.branches.filter(Boolean) : (data.branches ? Object.keys(data.branches).map(k => data.branches[k]) : []);
                       
@@ -309,7 +305,7 @@
                   onAuthStateChanged(auth, async (currentUser) => { 
                       if (currentUser && !currentUser.isAnonymous) {
                           setUser(currentUser); 
-                          // Fetch Role Configuration
+                          // Verify Staff Profile
                           try {
                               const profileDoc = await getDoc(doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'staffSettings'));
                               if (profileDoc.exists()) {
@@ -318,7 +314,13 @@
                               } else {
                                   setNeedsSetup(true);
                               }
-                          } catch(e) { console.error(e); }
+                          } catch(e) { 
+                              console.error("Firestore Error:", e);
+                              alert("Database Error: Could not verify your staff account.\n\nPlease ensure 'Firestore Database' is enabled in your Firebase Console and Security Rules allow reads/writes.");
+                              await signOut(auth);
+                              setUser(null);
+                              setViewMode('login');
+                          }
                       } else {
                           setUser(null);
                           setViewMode('login');
@@ -332,22 +334,30 @@
           // Sync Patients based on Auth
           useEffect(() => {
             if (!user || !staffProfile) return;
-            const unsubscribe = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'patients'), (snapshot) => {
-              const data = [];
-              snapshot.forEach(docSnap => {
-                  const p = docSnap.data();
-                  if (p.customTables) {
-                      p.customTables = p.customTables.map(t => {
-                          let parsedRows = [['', '']];
-                          try { parsedRows = typeof t.rows === 'string' ? JSON.parse(t.rows) : t.rows; } catch(e) {}
-                          return { ...t, rows: parsedRows };
-                      });
-                  }
-                  data.push({ id: docSnap.id, ...p });
-              });
-              setAllPatients(data);
-            });
-            return () => unsubscribe();
+            
+            try {
+                const unsubscribe = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'patients'), (snapshot) => {
+                  const data = [];
+                  snapshot.forEach(docSnap => {
+                      const p = docSnap.data();
+                      if (p.customTables) {
+                          p.customTables = p.customTables.map(t => {
+                              let parsedRows = [['', '']];
+                              try { parsedRows = typeof t.rows === 'string' ? JSON.parse(t.rows) : t.rows; } catch(e) {}
+                              return { ...t, rows: parsedRows };
+                          });
+                      }
+                      data.push({ id: docSnap.id, ...p });
+                  });
+                  setAllPatients(data);
+                }, (err) => {
+                    console.error("Listener error:", err);
+                    alert("Lost connection to Patient Records Database. Check your Firestore rules.");
+                });
+                return () => unsubscribe();
+            } catch (err) {
+                console.error("Snapshot creation error:", err);
+            }
           }, [user, staffProfile]);
 
           const handleDoctorGoogleLogin = async () => { 
@@ -391,7 +401,10 @@
                 
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'patients', updatedPatient.id), patientToSave);
                 setDraftPatient(null);
-            } catch(e) { alert("Failed to save."); }
+            } catch(e) { 
+                console.error(e);
+                alert("Failed to save patient. Check Firestore Rules."); 
+            }
             setTimeout(() => setIsSaving(false), 500); 
           };
 
@@ -416,6 +429,8 @@
                   </div>
               );
           }
+          
+          if (!staffProfile) return null; // Safety check
 
           // RBAC Filtering Logic
           let viewablePatients = allPatients;
@@ -1197,5 +1212,3 @@
     </script>
 </body>
 </html>
-
-
